@@ -1,3 +1,4 @@
+import queue
 import socket
 import time
 import os
@@ -30,14 +31,16 @@ def request_file_download(file_name):
 
 def client():
     downloaded_files = set()
-    #print("Available files:\n", files_list)
+    files_to_download = queue.Queue()
 
     while True:
         with open('input.txt', 'r') as f:
-            files_to_download = set(f.read().splitlines())
+            for file_name in f.read().splitlines():
+                if file_name not in downloaded_files:
+                    files_to_download.put(file_name)
         
-        new_files = files_to_download - downloaded_files
-        for file_name in new_files:
+        while not files_to_download.empty():
+            file_name = files_to_download.get()
             request_file_download(file_name)
             downloaded_files.add(file_name)
         
