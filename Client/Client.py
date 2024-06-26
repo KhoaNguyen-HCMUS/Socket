@@ -9,7 +9,6 @@ def request_file_download(file_name):
     client_socket.connect((host, port))
     
     files_list = client_socket.recv(1024).decode()
-    print("Available files:\n", files_list)
     
     client_socket.sendall(file_name.encode())
     
@@ -24,13 +23,15 @@ def request_file_download(file_name):
                 f.write(data)
                 received += len(data)
                 print(f"Downloading {file_name}: {received * 100 / file_size:.2f}%")
-        print(f"{file_name} has been downloaded.")
-    else:
-        print(f"{file_name} does not exist on the server.")
+    
+    else :
+        print(f"File {file_name} not found")
     client_socket.close()
 
 def client():
     downloaded_files = set()
+    #print("Available files:\n", files_list)
+
     while True:
         with open('input.txt', 'r') as f:
             files_to_download = set(f.read().splitlines())
