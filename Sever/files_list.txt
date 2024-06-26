@@ -1,0 +1,4 @@
+text1.txt 15 bytes
+text2.txt 17 bytes
+text3.txt 17 bytes
+text4.txt 15 bytes
