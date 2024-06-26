@@ -27,15 +27,16 @@ def server():
     while True:
         client_socket, addr = server_socket.accept()
         print(f"Connection from {addr}")
-        send_file_list(client_socket)
-        
-        while True:
-            file_name = client_socket.recv(1024).decode()
-            if not file_name:
-                break
-            send_file(client_socket, file_name)
-        
-        client_socket.close()
+        try:
+            while True:
+                file_name = client_socket.recv(1024).decode()
+                if not file_name:
+                    break
+                send_file(client_socket, file_name)
+        except Exception as e:
+            print(f"Error: {e}")
+        finally:
+            client_socket.close()
 
 if __name__ == '__main__':
     server()

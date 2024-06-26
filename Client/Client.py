@@ -1,50 +1,52 @@
-import queue
 import socket
 import time
 import os
 
-def request_file_download(file_name):
+def get_new_files(downloaded_files):
+    with open('input.txt', 'r') as f:
+        current_files = f.read().splitlines()
+    return [file for file in current_files if file not in downloaded_files]
+
+def connect_to_server():
     host = 'localhost'
     port = 12345
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((host, port))
-    
-    files_list = client_socket.recv(1024).decode()
-    
+    return client_socket
+
+def request_file_download(client_socket, file_name):
     client_socket.sendall(file_name.encode())
-    
+    # Giả định server gửi kích thước file trước
     file_size = int(client_socket.recv(1024).decode())
-    if file_size > 0:
-        with open(f"output/{file_name}", 'wb') as f:
-            received = 0
-            while received < file_size:
+    if file_size:
+        downloaded_size = 0  # Khởi tạo số byte đã tải về
+        with open(os.path.join('output', file_name), 'wb') as f:
+            while downloaded_size < file_size:
                 data = client_socket.recv(1024)
-                if not data:
-                    break
                 f.write(data)
-                received += len(data)
-                print(f"Downloading {file_name}: {received * 100 / file_size:.2f}%")
-    
-    else :
-        print(f"File {file_name} not found")
-    client_socket.close()
+                downloaded_size += len(data)
+                # Tính toán và hiển thị tỉ lệ phần trăm tiến độ
+                progress_percentage = (downloaded_size / file_size) * 100
+                print(f"Downloading {file_name}: {progress_percentage:.2f}% complete", end='\r')
+        print(f"\n----------")
+    else:
+        print(f"File {file_name} not found on server")
 
-def client():
+def main():
     downloaded_files = set()
-    files_to_download = queue.Queue()
+    client_socket = connect_to_server()
+    
+    try:
+        while True:
+            new_files = get_new_files(downloaded_files)
+            for file_name in new_files:
+                request_file_download(client_socket, file_name)
+                downloaded_files.add(file_name)
+            time.sleep(2)
+    except KeyboardInterrupt:
+        print("Client is shutting down.")
+    finally:
+        client_socket.close()
 
-    while True:
-        with open('input.txt', 'r') as f:
-            for file_name in f.read().splitlines():
-                if file_name not in downloaded_files:
-                    files_to_download.put(file_name)
-        
-        while not files_to_download.empty():
-            file_name = files_to_download.get()
-            request_file_download(file_name)
-            downloaded_files.add(file_name)
-        
-        time.sleep(2)
-
-if __name__ == '__main__':
-    client()
+if __name__ == "__main__":
+    main()
