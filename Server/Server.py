@@ -7,14 +7,26 @@ def send_file_list(client_socket):
     client_socket.sendall(files_list.encode())
 
 def send_file(client_socket, file_name):
-    if os.path.isfile(file_name):
-        file_size = os.path.getsize(file_name)
-        client_socket.sendall(f"{file_size}".encode())
-        with open(file_name, 'rb') as f:
-            data = f.read()
-            client_socket.sendall(data)
+    # Prepend the "Cloud" folder to the file_name
+    file_path = os.path.join("Cloud", file_name)
+    
+    # Check if the file exists
+    if os.path.isfile(file_path):
+        # Assuming you have a way to send the file size first
+        file_size = os.path.getsize(file_path)
+        client_socket.sendall(str(file_size).encode())
+        
+        with open(file_path, 'rb') as f:
+            bytes_sent = 0
+            while bytes_sent < file_size:
+                data = f.read(1024)
+                client_socket.sendall(data)
+                bytes_sent += len(data)
+        print(f"File {file_name} sent successfully.")
     else:
-        client_socket.sendall(b'0')
+        print(f"File {file_name} not found.")
+        # Optionally, send a message to the client indicating the file was not found
+        client_socket.sendall("File not found".encode())
 
 def server():
     host = 'localhost'
@@ -26,7 +38,7 @@ def server():
     
     while True:
         client_socket, addr = server_socket.accept()
-        print(f"Connection from {addr}")
+        print(f"-----Connection from {addr}-----")
         try:
             while True:
                 file_name = client_socket.recv(1024).decode()

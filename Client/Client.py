@@ -20,7 +20,7 @@ def request_file_download(client_socket, file_name):
     file_size = int(client_socket.recv(1024).decode())
     if file_size:
         downloaded_size = 0  # Khởi tạo số byte đã tải về
-        with open(os.path.join('output', file_name), 'wb') as f:
+        with open(os.path.join('output', file_name), 'wb') as f:   
             while downloaded_size < file_size:
                 data = client_socket.recv(1024)
                 f.write(data)
@@ -28,7 +28,7 @@ def request_file_download(client_socket, file_name):
                 # Tính toán và hiển thị tỉ lệ phần trăm tiến độ
                 progress_percentage = (downloaded_size / file_size) * 100
                 print(f"Downloading {file_name}: {progress_percentage:.2f}% complete", end='\r')
-        print(f"\n----------")
+        print(f"\n-------------")
     else:
         print(f"File {file_name} not found on server")
 

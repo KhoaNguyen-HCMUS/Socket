@@ -1,0 +1,6 @@
+test2.zip 10.9MB
+test1.zip 1.12GB
+text1.txt 1.62MB
+text2.txt 17B
+text3.txt 17B
+text4.txt 15B
