@@ -29,9 +29,9 @@ def send_file(client_socket, file_name):
         client_socket.sendall("File not found".encode())
 
 def server():
-    host = 'localhost'
-    port = 12345
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    host = '0.0.0.0'
+    port = 10000
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #IPv4, TCP
     server_socket.bind((host, port))
     server_socket.listen(5)
     print("Server is listening...")

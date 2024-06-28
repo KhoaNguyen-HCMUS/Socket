@@ -8,8 +8,8 @@ def get_new_files(downloaded_files):
     return [file for file in current_files if file not in downloaded_files]
 
 def connect_to_server():
-    host = 'localhost'
-    port = 12345
+    host = '127.0.0.1'
+    port = 10000
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((host, port))
     return client_socket
