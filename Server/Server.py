@@ -1,5 +1,6 @@
 import socket
 import os
+import threading
 
 def send_file_list(client_socket):
     with open('files_list.txt', 'r') as f:
@@ -29,11 +30,13 @@ def send_file(client_socket, file_name):
         client_socket.sendall("0".encode())  # Indicating file size of 0 for non-existent file
         print(f"File {file_name} not found.")
 def server():
-    host = '192.168.1.10' # Server IP address
+    host = '192.168.1.19' # Server IP address
+    #host = '127.0.0.1' #loopback address
     port = 10000
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #IPv4, TCP
     server_socket.bind((host, port))
     server_socket.listen(5)
+    print(f"Server started on {host} port:{port}")
     print("Server is listening...")
     
     while True:

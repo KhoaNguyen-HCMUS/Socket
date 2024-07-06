@@ -8,7 +8,7 @@ def get_new_files(downloaded_files):
     return [file for file in current_files if file not in downloaded_files]
 
 def connect_to_server():
-    host = '192.168.1.10' # Server IP address
+    host = '192.168.1.19' # Server IP address
     port = 10000
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((host, port))
@@ -35,14 +35,21 @@ def request_file_download(client_socket, file_name):
 def main():
     downloaded_files = set()
     client_socket = connect_to_server()
-    
+
     try:
+        
+        print("Connected to server.")
+        print("Client address:", client_socket.getsockname())
         while True:
             new_files = get_new_files(downloaded_files)
             for file_name in new_files:
                 request_file_download(client_socket, file_name)
                 downloaded_files.add(file_name)
             time.sleep(2)
+    except ConnectionRefusedError:
+        print("Can't connect to server. Please check IP address and port again.")
+    except Exception as e:
+        print(f"Error: {e}")
     except KeyboardInterrupt:
         print("Client is shutting down.")
     finally:
