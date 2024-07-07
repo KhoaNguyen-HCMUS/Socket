@@ -7,7 +7,7 @@ def send_file_list(client_socket):
         files_list = f.read()
     client_socket.sendall(files_list.encode())
 
-def send_file(client_socket, file_name):
+def send_file(client_socket, file_name, addr):
     # Prepend the "Cloud" folder to the file_name
     server_py_directory = os.path.dirname(os.path.abspath(__file__))
     file_path = os.path.join(server_py_directory,'Cloud', file_name)
@@ -24,11 +24,25 @@ def send_file(client_socket, file_name):
                 data = f.read(1024)
                 client_socket.sendall(data)
                 bytes_sent += len(data)
-        print(f"Sent file: {file_name}")
+        print(f"Sent file for client {addr}: {file_name}" )
     else:
         # Send a response indicating the file does not exist
         client_socket.sendall("0".encode())  # Indicating file size of 0 for non-existent file
         print(f"File {file_name} not found.")
+
+def handle_client_connection(client_socket, addr):
+    print(f"-----Connection from {addr}-----")
+    try:
+        while True:
+            file_name = client_socket.recv(1024).decode()
+            if not file_name:
+                break
+            send_file(client_socket, file_name, addr)
+    except socket.error as err:
+        print(f"Socket error: {err}")
+    finally:
+        client_socket.close()
+
 def server():
     host = '192.168.1.19' # Server IP address
     #host = '127.0.0.1' #loopback address
@@ -41,21 +55,9 @@ def server():
     
     while True:
         client_socket, addr = server_socket.accept()
-        print(f"-----Connection from {addr}-----")
-        try:
-            while True:
-                file_name = client_socket.recv(1024).decode()
-                if not file_name:
-                    break
-                send_file(client_socket, file_name)
-        except socket.error as err:
-            print(f"Socket error: {err}")
-        except ConnectionError:
-            print("Connection error")
-        except TimeoutError:
-            print("Timeout")
-        finally:
-            client_socket.close()
+        client_handler = threading.Thread(target=handle_client_connection, args=(client_socket, addr))
+        client_handler.start()
+
 
 if __name__ == '__main__':
     server()
