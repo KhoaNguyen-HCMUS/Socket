@@ -37,7 +37,6 @@ def main():
     client_socket = connect_to_server()
 
     try:
-        
         print("Connected to server.")
         print("Client address:", client_socket.getsockname())
         while True:

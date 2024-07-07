@@ -48,8 +48,12 @@ def server():
                 if not file_name:
                     break
                 send_file(client_socket, file_name)
-        except Exception as e:
-            print(f"Error: {e}")
+        except socket.error as err:
+            print(f"Socket error: {err}")
+        except ConnectionError:
+            print("Connection error")
+        except TimeoutError:
+            print("Timeout")
         finally:
             client_socket.close()
 
