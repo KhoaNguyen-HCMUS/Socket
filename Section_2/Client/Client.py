@@ -8,7 +8,8 @@ def get_new_files(downloaded_files):
     return [file for file in current_files if file not in downloaded_files]
 
 def connect_to_server():
-    host = '192.168.1.19' # Server IP address
+    #host = '192.168.1.19' # Server IP address
+    host = '127.0.0.1' #loopback address
     port = 10000
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((host, port))

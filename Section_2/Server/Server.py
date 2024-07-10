@@ -1,5 +1,6 @@
 import socket
 import os
+import threading
 
 def send_file_list(client_socket):
     with open('files_list.txt', 'r') as f:
@@ -28,9 +29,28 @@ def send_file(client_socket, file_name):
         # Send a response indicating the file does not exist
         client_socket.sendall("0".encode())  # Indicating file size of 0 for non-existent file
         print(f"File {file_name} not found.")
+
+def handle_client_connection(client_socket, addr):
+    print(f"-----Connection from {addr}-----")
+    try:
+        while True:
+            file_name = client_socket.recv(1024).decode()
+            if not file_name:
+                break
+            send_file(client_socket, file_name)
+    except socket.error as err:
+        print(f"Socket error: {err}")
+    except ConnectionError:
+        print("Connection error")
+    except TimeoutError:
+        print("Timeout")
+    finally:
+        print(f"Client {addr} has disconnected.")
+        client_socket.close()
+
 def server():
-    host = '192.168.1.19' # Server IP address
-    #host = '127.0.0.1' #loopback address
+    #host = '192.168.1.19' # Server IP address
+    host = '127.0.0.1' #loopback address
     port = 10000
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #IPv4, TCP
     server_socket.bind((host, port))
@@ -40,22 +60,8 @@ def server():
     
     while True:
         client_socket, addr = server_socket.accept()
-        print(f"-----Connection from {addr}-----")
-        try:
-            while True:
-                file_name = client_socket.recv(1024).decode()
-                if not file_name:
-                    break
-                send_file(client_socket, file_name)
-        except socket.error as err:
-            print(f"Socket error: {err}")
-        except ConnectionError:
-            print("Connection error")
-        except TimeoutError:
-            print("Timeout")
-        finally:
-            print(f"-----Client {addr} has disconnected-----")
-            client_socket.close()
+        client_thread = threading.Thread(target=handle_client_connection, args=(client_socket, addr))
+        client_thread.start()
 
 if __name__ == '__main__':
     server()
