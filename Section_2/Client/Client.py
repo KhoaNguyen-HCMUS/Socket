@@ -2,6 +2,12 @@ import socket
 import time
 import os
 
+def get_file_list(client_socket):
+    file_list = client_socket.recv(1024).decode()
+    print("File list:")
+    print(file_list)
+
+
 def get_new_files(downloaded_files):
     with open('input.txt', 'r') as f:
         current_files = f.read().splitlines()
@@ -40,6 +46,7 @@ def main():
     try:
         print("Connected to server.")
         print("Client address:", client_socket.getsockname())
+        get_file_list(client_socket)
         while True:
             new_files = get_new_files(downloaded_files)
             for file_name in new_files:

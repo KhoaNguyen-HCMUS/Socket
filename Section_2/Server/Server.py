@@ -60,6 +60,7 @@ def server():
     
     while True:
         client_socket, addr = server_socket.accept()
+        send_file_list(client_socket)
         client_thread = threading.Thread(target=handle_client_connection, args=(client_socket, addr))
         client_thread.start()
 

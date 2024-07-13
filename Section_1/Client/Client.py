@@ -2,13 +2,19 @@ import socket
 import time
 import os
 
+def get_file_list(client_socket):
+    file_list = client_socket.recv(1024).decode()
+    print("File list:")
+    print(file_list)
+
 def get_new_files(downloaded_files):
     with open('input.txt', 'r') as f:
         current_files = f.read().splitlines()
     return [file for file in current_files if file not in downloaded_files]
 
 def connect_to_server():
-    host = '192.168.1.19' # Server IP address
+    #host = '192.168.1.19' # Server IP address
+    host = '127.0.0.1' #loopback address
     port = 10000
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((host, port))
@@ -39,6 +45,7 @@ def main():
     try:
         print("Connected to server.")
         print("Client address:", client_socket.getsockname())
+        get_file_list(client_socket)
         while True:
             new_files = get_new_files(downloaded_files)
             for file_name in new_files:
