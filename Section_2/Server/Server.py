@@ -1,68 +1,98 @@
-import socket
 import os
+import socket
 import threading
 
-def send_file_list(client_socket):
-    with open('files_list.txt', 'r') as f:
-        files_list = f.read()
-    client_socket.sendall(files_list.encode())
 
-def send_file(client_socket, file_name):
-    # Prepend the "Cloud" folder to the file_name
-    server_py_directory = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(server_py_directory,'Cloud', file_name)
-     # Initialize file_size
-    file_size = None
-    
-    # Open files_list.txt and read file sizes
-    if os.path.exists(file_path):
-        file_size = os.path.getsize(file_path)
-        client_socket.sendall(str(file_size).encode())
-        with open(file_path, 'rb') as f:
-            bytes_sent = 0
-            while bytes_sent < file_size:
-                data = f.read(1024)
-                client_socket.sendall(data)
-                bytes_sent += len(data)
-        print(f"Sent file: {file_name}")
-    else:
-        # Send a response indicating the file does not exist
-        client_socket.sendall("0".encode())  # Indicating file size of 0 for non-existent file
-        print(f"File {file_name} not found.")
+def file_chunk_generator(file_path, chunk_size):
+    with open(file_path, "rb") as f:
+        while chunk := f.read(chunk_size):
+            yield chunk
 
-def handle_client_connection(client_socket, addr):
-    print(f"-----Connection from {addr}-----")
+
+def send_file_list(client_socket: socket.socket):
+    msg = client_socket.recv(1024).decode()
+    if msg == "LIST":
+        with open("files_list.txt", "r") as f:
+            files_list = f.read()
+        client_socket.sendall(files_list.encode())
+
+
+SEPARATOR = "<SEPARATOR>"
+
+
+def handle_client(client_socket: socket.socket, file_list):
     try:
+        file_list_str = "\n".join(
+            [f"{file_name}{SEPARATOR}{file_size}" for file_name, file_size in file_list]
+        )
+        # client_socket.sendall(file_list_str.encode())
+
+        manager: dict = {}
+
         while True:
-            file_name = client_socket.recv(1024).decode()
-            if not file_name:
+            request = client_socket.recv(1024).decode()
+            if not request:
                 break
-            send_file(client_socket, file_name)
-    except socket.error as err:
-        print(f"Socket error: {err}")
-    except ConnectionError:
-        print("Connection error")
-    except TimeoutError:
-        print("Timeout")
+
+            try:
+                file_name, priority = request.split(",")
+            except ValueError:
+                client_socket.sendall("Invalid request format".encode())
+                continue
+
+            file_path = os.path.join("Cloud", file_name)
+
+            if os.path.exists(file_path):
+                file_size = os.path.getsize(file_path)
+
+                chunk_size = 1024
+                if priority == "CRITICAL":
+                    chunk_size *= 10
+                elif priority == "HIGH":
+                    chunk_size *= 4
+                elif priority == "NORMAL":
+                    chunk_size *= 1
+
+                if not file_name in manager:
+                    manager[file_name] = file_chunk_generator(file_path, chunk_size)
+
+                client_socket.sendall(f"{file_name},{file_size}".encode())
+
+                try:
+
+                    chunk = next(manager[file_name])
+                    client_socket.sendall(chunk)
+                    # DATA{SEP}{filename}{SEP}{data}
+
+                except StopIteration:
+                    client_socket.sendall("EOF".encode())
+                    continue
+
+            else:
+                client_socket.sendall("0".encode())
     finally:
-        print(f"Client {addr} has disconnected.")
         client_socket.close()
 
-def server():
-    #host = '192.168.1.19' # Server IP address
-    host = '127.0.0.1' #loopback address
+
+def main():
+    host = "127.0.0.1"
     port = 10000
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #IPv4, TCP
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((host, port))
     server_socket.listen(5)
-    print(f"Server started on {host} port:{port}")
-    print("Server is listening...")
-    
+    print("Server listening on port", port)
+
+    file_list = [
+        (f, os.path.getsize(os.path.join("Cloud", f)), os.path.join("Cloud", f))
+        for f in os.listdir("Cloud")
+    ]
+
     while True:
         client_socket, addr = server_socket.accept()
+        print("Connection from", addr)
         send_file_list(client_socket)
-        client_thread = threading.Thread(target=handle_client_connection, args=(client_socket, addr))
-        client_thread.start()
+        threading.Thread(target=handle_client, args=(client_socket, file_list)).start()
 
-if __name__ == '__main__':
-    server()
+
+if __name__ == "__main__":
+    main()
