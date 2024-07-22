@@ -23,7 +23,11 @@ SEPARATOR = "<SEPARATOR>"
 def handle_client(client_socket: socket.socket, file_list):
     try:
         file_list_str = "\n".join(
-            [f"{file_name}{SEPARATOR}{file_size}" for file_name, file_size in file_list]
+            # [f"{file_name}{SEPARATOR}{file_size}" for file_name, file_size in file_list]
+            [
+                f"{file_name}{SEPARATOR}{file_size}"
+                for file_name, file_size, *_ in file_list
+            ]
         )
         # client_socket.sendall(file_list_str.encode())
 

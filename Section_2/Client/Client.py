@@ -42,7 +42,6 @@ def request_file_download(client_socket: socket.socket, file_name, priority):
         print("Invalid response format from server")
         return
 
-
     if file_size > 0:
         downloaded_size = 0
         os.makedirs("output", exist_ok=True)
