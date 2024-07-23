@@ -11,9 +11,9 @@ class Server:
     def send_file_list(self, client_socket: socket.socket):
         message = client_socket.recv(1024).decode()
         if message == "list":
-            self.handle_file_list(client_socket, "files_list.txt")
+            self.handle_file_list(client_socket)
 
-    def handle_file_list(self, client_socket, file_name):
+    def handle_file_list(self, client_socket: socket.socket):
         with open("files_list.txt", "r") as f:
             files_list = f.read()
         client_socket.sendall(files_list.encode())
