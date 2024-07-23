@@ -1,5 +1,4 @@
 import socket
-import queue
 import os
 
 
@@ -56,8 +55,9 @@ class Client:
             while True:
                 new_files = self.get_new_files()
                 for file_name in new_files:
-                    self.request_file_download(file_name)
-                    self.downloaded_files.add(file_name)
+                    if file_name not in self.downloaded_files:
+                        self.request_file_download(file_name)
+                        self.downloaded_files.add(file_name)
         except ConnectionRefusedError:
             print("Connection refused. Server is not running.")
         except KeyboardInterrupt:
