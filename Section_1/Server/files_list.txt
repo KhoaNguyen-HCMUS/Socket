@@ -12,5 +12,3 @@ File5.zip 100MB
 File6.zip 200MB
 File7.zip 512MB
 File8.zip 1GB
-
-
