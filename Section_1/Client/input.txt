@@ -8,3 +8,6 @@ text3.txt
 text4.txt
 text4.txt
 text5.txt
+text4.txt
+test1.zip
+File1.zip

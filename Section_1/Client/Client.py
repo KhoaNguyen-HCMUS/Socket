@@ -9,7 +9,6 @@ class Client:
         self.port = 10000
         self.client_socket = None
         self.downloaded_files = set()
-        self.file_queue = queue.Queue()
 
     def get_file_list(self):
         self.client_socket.sendall("list".encode())
@@ -20,38 +19,28 @@ class Client:
     def get_new_files(self):
         with open("input.txt", "r") as f:
             current_files = f.read().splitlines()
-        for file in current_files:
-            if file not in self.downloaded_files:
-                self.file_queue.put(file)
+        return [file for file in current_files if file not in self.downloaded_files]
 
     def request_file_download(self, file_name):
-        if file_name in self.downloaded_files:
-            print(f"Skipping {file_name}, already downloaded.\n-------------")
-            return
-
         self.client_socket.sendall(file_name.encode())
+        # Assume the server sends the file size first
         file_size = int(self.client_socket.recv(1024).decode())
         if file_size:
-            downloaded_size = 0
-            with open(os.path.join("Output", file_name), "wb") as f:
+            downloaded_size = 0  # Initialize the number of downloaded bytes
+            with open(os.path.join("output", file_name), "wb") as f:
                 while downloaded_size < file_size:
                     data = self.client_socket.recv(1024)
                     f.write(data)
                     downloaded_size += len(data)
+                    # Calculate and display progress percentage
                     progress_percentage = (downloaded_size / file_size) * 100
                     print(
                         f"Downloading {file_name}: {progress_percentage:.2f}% complete",
                         end="\r",
                     )
             print(f"\n-------------")
-            self.downloaded_files.add(file_name)
         else:
             print(f"File {file_name} not found on server\n-------------")
-
-    def process_file_queue(self):
-        while not self.file_queue.empty():
-            file_name = self.file_queue.get()
-            self.request_file_download(file_name)
 
     def connect_to_server(self):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -64,8 +53,11 @@ class Client:
         try:
             print("Connected to server.")
             self.get_file_list()
-            self.get_new_files()
-            self.process_file_queue()
+            while True:
+                new_files = self.get_new_files()
+                for file_name in new_files:
+                    self.request_file_download(file_name)
+                    self.downloaded_files.add(file_name)
         except ConnectionRefusedError:
             print("Connection refused. Server is not running.")
         except KeyboardInterrupt:
