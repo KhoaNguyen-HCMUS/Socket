@@ -97,23 +97,40 @@ class Server:
         self.root.quit()
 
     def GUI(self):
-        customtkinter.set_appearance_mode("Light")
         self.root = customtkinter.CTk()
         self.root.title("Server")
-        self.root.geometry("500x500")
+        self.root.geometry("600x600")  # Increased window size
         self.root.resizable(True, True)
+        self.root.configure(bg="#34568B")  # Set a background color
 
-        self.text_widget = customtkinter.CTkTextbox(self.root, fg_color="#a9d6e5")
-        self.text_widget.pack(expand=True, fill="both")
+        # Header
+        header = customtkinter.CTkLabel(
+            self.root,
+            text="Server Control Panel",
+            font=("Arial", 20),
+            fg_color="#34568B",
+            text_color="white",
+            corner_radius=10,
+        )
+        header.pack(pady=10)
+
+        self.text_widget = customtkinter.CTkTextbox(
+            self.root, fg_color="#a9d6e5", font=("Arial", 14), width=120, height=10
+        )
+        self.text_widget.pack(expand=True, fill="both", padx=10, pady=10)
 
         stop_button = customtkinter.CTkButton(
             self.root,
             text="Stop Server",
             command=self.stop_server,
-            fg_color="#1e3d59",
-            text_color="#a9d6e5",
+            fg_color="#FF6F61",  # Button color
+            text_color="white",  # Text color
+            font=("Arial", 16),  # Font size
+            width=120,  # Button width
+            height=50,  # Button height
+            corner_radius=10,  # Rounded corners
         )
-        stop_button.pack(pady=10)
+        stop_button.pack(pady=20)
 
         self.start_server()  # Start the server in a separate thread
         self.root.mainloop()
