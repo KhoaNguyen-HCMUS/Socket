@@ -4,12 +4,14 @@ import threading
 
 
 def file_chunk_generator(file_path, chunk_size):
+    #with open(file_path, "rb") as f:
+    #   print(f.read())
     with open(file_path, "rb") as f:
-        print(f.read())
-
-    with open(file_path, "rb") as f:
-        while chunk := f.read(chunk_size):
-            yield chunk
+        while True:
+            data = f.read(chunk_size)
+            if not data:
+                break
+            yield data
 
 
 def send_file_list(client_socket: socket.socket):
@@ -29,7 +31,6 @@ def handle_client(client_socket: socket.socket, file_list):
     send_file_list(client_socket)
     try:
         file_list_str = "\n".join(
-            # [f"{file_name}{SEPARATOR}{file_size}" for file_name, file_size in file_list]
             [
                 f"{file_name}{SEPARATOR}{file_size}"
                 for file_name, file_size, *_ in file_list
@@ -45,11 +46,11 @@ def handle_client(client_socket: socket.socket, file_list):
         while True:
             cmd = client_socket.recv(1024).decode()  # get
             if cmd == "get":
-                print("\n get")
+                #print("\n get")
                 msg = client_socket.recv(1024).decode()
                 if msg == "continue":
                     continue
-
+                #print(msg)
                 _, filename, priority_size = msg.split(SEPARATOR)[:3]
                 print(_, filename, priority_size)
 
@@ -60,7 +61,8 @@ def handle_client(client_socket: socket.socket, file_list):
                     manager[filename] = file_chunk_generator(file_path, chunk_sz)
 
                 chunk_data = next(manager[filename])
-                print(len(chunk_data))
+                print("len", len(chunk_data))
+
                 client_socket.sendall(f"DATA{SEPARATOR}{filename}{SEPARATOR}{(chunk_data if chunk_data else "eof")}".encode())
 
             elif cmd == "terminated":
