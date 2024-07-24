@@ -78,33 +78,36 @@ def monitor_input_file(client_socket: socket.socket):
     print("valid", valid_files)
 
     print("Monitoring input files...")
-    while True:
-        client_socket.sendall("get".encode())
+    #while True:
+    client_socket.sendall("get".encode())
 
-        for file_name, priority_size in input_files:
-            if file_name in valid_files and file_name not in downloaded_files:
-                print("send", file_name, priority_size)
-                client_socket.sendall(
-                    f"GET{SEPARATOR}{file_name}{SEPARATOR}{priority_size}".encode()
-                )
-                # receive data
-                data = client_socket.recv(priority_size).decode()
-                print("recv", data)
-                # _, filename, chunk_data = data.split(SEPARATOR)
-                _, filename, chunk_data = "", "", b""
-
-                # process data, if data is eof, then update downloaded_files
-                if chunk_data == "eof":
-                    downloaded_files.add(file_name)
-                    num_downloaded_files += 1
-                else:
-                    write_file(file_name, chunk_data)
-
-                if num_downloaded_files == num_input_files:
-                    break
+    for file_name, priority_size in input_files:
+        if file_name in valid_files and file_name not in downloaded_files:
+            print("send", file_name, priority_size)
+            client_socket.sendall(f"GET{SEPARATOR}{file_name}{SEPARATOR}{priority_size}".encode())
+            
+            # receive data
+            data = client_socket.recv(1024).decode()
+            print("recv", data)
+            _, filename, chunk_data = data.split(SEPARATOR)
+            #_, filename, chunk_data = "", "", b""
+            print(_, filename, chunk_data)
+            # process data, if data is eof, then update downloaded_files
+            if chunk_data == "eof":
+                downloaded_files.add(file_name)
+                num_downloaded_files += 1
             else:
-                print(f"File {file_name} not found")
-                client_socket.send("continue".encode())
+                write_file(file_name, chunk_data)
+
+            #if num_downloaded_files == num_input_files:
+                #break
+            client_socket.sendall("get".encode())
+        else:
+            print(f"File {file_name} not found")
+            client_socket.sendall("continue".encode())
+            client_socket.sendall("get".encode())
+        if num_downloaded_files == num_input_files:
+            break
 
         # input_files.update(get_input_files())s
 
