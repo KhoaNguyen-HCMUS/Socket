@@ -14,6 +14,11 @@ class Client:
         self.client_running = False  # Flag to check if server is running
         self.root = customtkinter.CTk()
 
+        self.progress_label = customtkinter.CTkLabel(
+            self.root, text="Download progress: 0%"
+        )
+        self.progress_label.pack(pady=10)
+
     def log_message(self, message):
         if self.text_widget:
             self.text_widget.insert(customtkinter.END, message + "\n")
@@ -44,10 +49,10 @@ class Client:
                     downloaded_size += len(data)
                     # Calculate and display progress percentage
                     progress_percentage = (downloaded_size / file_size) * 100
-                    print(
-                        f"Downloading {file_name}: {progress_percentage:.2f}% complete",
-                        end="\r",
+                    self.progress_label.configure(
+                        text=f"Download progress: {progress_percentage:.2f}%"
                     )
+                    self.root.update()
             self.log_message(f"\n-------------")
         else:
             self.log_message(f"File {file_name} not found on server\n-------------")
@@ -100,21 +105,59 @@ class Client:
         self.log_message("Client stopped.")
         self.root.quit()
 
+    def input_file_name(self):
+        file_name = self.file_input_entry.get()
+        with open("input.txt", "a") as f:
+            f.write(file_name + "\n")
+
     def GUI(self):
         self.root = customtkinter.CTk()
         self.root.title("Client")
-        self.root.geometry("500x500")
-        self.text_widget = customtkinter.CTkTextbox(self.root, fg_color="#a9d6e5")
-        self.text_widget.pack(fill="both", expand=True)
+        self.root.geometry("600x600")
+        self.root.resizable(True, True)
+        self.root.configure(bg="#34568B")
+        header = customtkinter.CTkLabel(
+            self.root,
+            text="Client Control Panel",
+            font=("Arial", 20),
+            fg_color="#34568B",
+            text_color="white",
+            corner_radius=10,
+        )
+        header.pack(pady=10)
+
+        self.text_widget = customtkinter.CTkTextbox(
+            self.root, fg_color="#a9d6e5", font=("Arial", 14), width=120, height=10
+        )
+        self.text_widget.pack(expand=True, fill="both", padx=10, pady=10)
+
         stop_button = customtkinter.CTkButton(
             self.root,
             text="Stop Client",
             command=self.stop_client,
-            fg_color="#1e3d59",
-            text_color="#a9d6e5",
+            fg_color="#FF6F61",  # Button color
+            text_color="white",  # Text color
+            font=("Arial", 16),  # Font size
+            width=120,  # Button width
+            height=50,  # Button height
+            corner_radius=10,  # Rounded corners
         )
         stop_button.pack()
+        self.file_input_entry = customtkinter.CTkEntry(
+            self.root, placeholder_text="Enter file name, e.g., input.txt"
+        )
+        self.file_input_entry.pack(pady=10)
 
+        # Step 3: Add a Submit Button for the file input
+        submit_button = customtkinter.CTkButton(
+            self.root,
+            text="Enter",
+            command=self.input_file_name,  # This method will handle the file input
+            fg_color="#007BFF",  # Button color
+            text_color="white",  # Text color
+            font=("Arial", 16),  # Font size
+        )
+        submit_button.pack(pady=10)
         self.start_client()
         self.root.mainloop()
 
