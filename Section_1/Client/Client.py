@@ -3,7 +3,6 @@ import os
 import customtkinter
 import threading
 
-
 class Client:
     def __init__(self):
         self.host = "127.0.0.1"
@@ -35,6 +34,12 @@ class Client:
         self.client_socket.sendall(file_name.encode())
         # Assume the server sends the file size first
         file_size = int(self.client_socket.recv(1024).decode())
+
+        frame = customtkinter.CTkFrame(self.root)
+        labelPercentage = customtkinter.CTkLabel(frame, text=f"Downloading {file_name}: 0.00% completed")
+        labelPercentage.pack()
+        frame.pack()
+
         if file_size:
             downloaded_size = 0  # Initialize the number of downloaded bytes
             with open(os.path.join("output", file_name), "wb") as f:
@@ -45,9 +50,11 @@ class Client:
                     # Calculate and display progress percentage
                     progress_percentage = (downloaded_size / file_size) * 100
                     print(
-                        f"Downloading {file_name}: {progress_percentage:.2f}% complete",
+                        f"Downloading {file_name}: {progress_percentage:.2f}% completed",
                         end="\r",
                     )
+                    labelPercentage.config(text=f"Downloading {file_name}: {progress_percentage:.2f}% completed")
+            self.log_message(f"\nDownloaded {file_name}")
             self.log_message(f"\n-------------")
         else:
             self.log_message(f"File {file_name} not found on server\n-------------")
