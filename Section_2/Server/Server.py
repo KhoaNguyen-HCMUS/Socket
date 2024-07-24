@@ -29,17 +29,18 @@ def handle_client(client_socket: socket.socket, file_list):
                 for file_name, file_size, *_ in file_list
             ]
         )
-        # client_socket.sendall(file_list_str.encode())
-
+        #print(file_list_str)
         manager: dict = {}
 
         while True:
             request = client_socket.recv(1024).decode()
+            print(request)
             if not request:
                 break
 
             try:
                 file_name, priority = request.split(",")
+                #client_socket.sendall(file_list_str.encode())
             except ValueError:
                 client_socket.sendall("Invalid request format".encode())
                 continue

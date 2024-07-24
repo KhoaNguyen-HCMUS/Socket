@@ -1,0 +1,12 @@
+text1.txt 1.62MB
+text2.txt 17B
+text3.txt 17B
+text4.txt 15B
+File1.zip 5MB
+File2.zip 10MB
+File3.zip 20MB
+File4.zip 50MB
+File5.zip 100MB
+File6.zip 200MB
+File7.zip 512MB
+File8.zip 1GB
