@@ -54,14 +54,20 @@ class Client:
 
     def connect_to_server(self):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.client_socket.connect((self.host, self.port))
+        # self.client_socket.connect((self.host, self.port))
         return self.client_socket
 
     def run(self):
         self.downloaded_files = set()
-        self.client_socket = self.connect_to_server()
         try:
-            self.log_message("Connected to server.")
+            self.client_socket = self.connect_to_server()
+            self.client_socket.connect((self.host, self.port))
+            if not self.client_socket.recv(1024).decode() == "accepted":
+                self.log_message(
+                    "Connection refused. Server is not running. Please stop client and try again later."
+                )
+
+            print("Connected to server")
             self.get_file_list()
             while not self.client_running:
                 new_files = self.get_new_files()
@@ -69,8 +75,6 @@ class Client:
                     if file_name not in self.downloaded_files:
                         self.request_file_download(file_name)
                         self.downloaded_files.add(file_name)
-        except ConnectionRefusedError:
-            self.log_message("Connection refused. Server is not running.")
         except KeyboardInterrupt:
             self.log_message("\nClient is closing...")
             if self.client_socket:

@@ -58,18 +58,19 @@ class Server:
         try:
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server_socket.bind((self.host, self.port))
-            self.server_socket.listen(5)
+            self.server_socket.listen(0)
             self.server_running = True
             self.log_message("Server started. Waiting for connection...")
             while self.server_running:
                 client_socket, addr = self.server_socket.accept()
+                client_socket.sendall("accepted".encode())
                 self.log_message(f"Connection from {addr}")
                 self.send_file_list(client_socket)
                 try:
                     while True:
                         file_name = client_socket.recv(1024).decode()
                         if not file_name:
-                            break
+                            continue
                         self.send_file(client_socket, file_name)
                 except Exception as e:
                     self.log_message(f"Error: {e}")
