@@ -1,0 +1,4 @@
+text1.txt 1700000
+text2.txt 17
+text3.txt 17
+text4.txt 15

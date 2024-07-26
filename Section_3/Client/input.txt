@@ -1,5 +1,1 @@
 text1.txt NORMAL
-text3.txt HIGH
-file5.zip NORMAL
-text2.txt CRITICAL
-file4.zip CRITICAL
