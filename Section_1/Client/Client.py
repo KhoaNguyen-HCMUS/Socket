@@ -2,6 +2,7 @@ import socket
 import os
 import customtkinter
 import threading
+from customtkinter import *
 
 
 class Client:
@@ -14,10 +15,16 @@ class Client:
         self.client_running = False  # Flag to check if server is running
         self.root = customtkinter.CTk()
 
+        # Tạo CTkLabel để hiển thị phần trăm hoàn thành
         self.progress_label = customtkinter.CTkLabel(
             self.root, text="Download progress: 0%"
         )
         self.progress_label.pack(pady=10)
+
+        # Tạo CTkProgressBar để hiển thị tiến trình tải xuống
+        self.progress_bar = customtkinter.CTkProgressBar(self.root)
+        self.progress_bar.pack(pady=10)
+        self.progress_bar.set(0)  # Đặt giá trị ban đầu của progress bar là 0
 
     def log_message(self, message):
         if self.text_widget:
@@ -49,11 +56,23 @@ class Client:
                     downloaded_size += len(data)
                     # Calculate and display progress percentage
                     progress_percentage = (downloaded_size / file_size) * 100
+
+                    # print(
+                    #     f"\rDownload {file_name} progress: {progress_percentage:.2f}%",
+                    #     end="",
+                    # )
+
+                    # Cập nhật CTkLabel để hiển thị phần trăm hoàn thành
                     self.progress_label.configure(
-                        text=f"Download progress: {progress_percentage:.2f}%"
+                        text=f"Download {file_name} progress: {progress_percentage:.2f}%"
                     )
+                    self.root.update()  # Cập nhật giao diện người dùng để phản ánh sự thay đổi
+
+                    # Cập nhật CTkProgressBar để hiển thị tiến trình tải xuống
+                    self.progress_bar.set(downloaded_size / file_size)
                     self.root.update()
-            self.log_message(f"\n-------------")
+            # print("Download complete")
+            self.log_message(f"\n Download {file_name} successful\n-------------")
         else:
             self.log_message(f"File {file_name} not found on server\n-------------")
 
@@ -131,18 +150,14 @@ class Client:
         )
         self.text_widget.pack(expand=True, fill="both", padx=10, pady=10)
 
-        stop_button = customtkinter.CTkButton(
-            self.root,
-            text="Stop Client",
-            command=self.stop_client,
-            fg_color="#FF6F61",  # Button color
-            text_color="white",  # Text color
-            font=("Arial", 16),  # Font size
-            width=120,  # Button width
-            height=50,  # Button height
-            corner_radius=10,  # Rounded corners
+        self.progress_label = customtkinter.CTkLabel(
+            self.root, text="Download progress: 0%"
         )
-        stop_button.pack()
+        self.progress_label.pack(pady=10)
+        self.progress_bar = customtkinter.CTkProgressBar(self.root)
+        self.progress_bar.pack(pady=10)
+        self.progress_bar.set(0)
+
         self.file_input_entry = customtkinter.CTkEntry(
             self.root, placeholder_text="Enter file name, e.g., input.txt"
         )
@@ -158,6 +173,20 @@ class Client:
             font=("Arial", 16),  # Font size
         )
         submit_button.pack(pady=10)
+
+        stop_button = customtkinter.CTkButton(
+            self.root,
+            text="Stop Client",
+            command=self.stop_client,
+            fg_color="#FF6F61",  # Button color
+            text_color="white",  # Text color
+            font=("Arial", 16),  # Font size
+            width=120,  # Button width
+            height=50,  # Button height
+            corner_radius=10,  # Rounded corners
+        )
+        stop_button.pack()
+
         self.start_client()
         self.root.mainloop()
 
