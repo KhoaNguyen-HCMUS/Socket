@@ -58,8 +58,7 @@ class Client:
             processed_files.append(f"{name} - {readable_size}")
 
         self.file_list_from_server = file_names
-        self.log_message(f"Files available:\n {'\n'.join(file_names)}")
-        # self.log_message(f"Files available on server:\n {'\n'.join(processed_files)}")
+        self.log_message(f"Files available on server:\n {'\n'.join(processed_files)}")
 
     def get_new_files(self):
         with open("input.txt", "r") as f:
