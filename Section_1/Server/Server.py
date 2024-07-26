@@ -11,6 +11,7 @@ class Server:
         self.server_socket = None
         self.text_widget = None  # Placeholder for the text widget
         self.server_running = False  # Flag to check if server is running
+        self.files_list_path = "files_list.txt"
 
     def log_message(self, message):
         if self.text_widget:
@@ -18,6 +19,20 @@ class Server:
             self.text_widget.insert(customtkinter.END, message + "\n")
             self.text_widget.see(customtkinter.END)
         print(message)
+
+    def update_files_list(self):
+        try:
+            with open(self.files_list_path, "w") as f:
+                for file_name in os.listdir("Cloud"):
+                    file_path = os.path.join("Cloud", file_name)
+                    if os.path.isfile(file_path):
+                        file_size = os.path.getsize(file_path)
+                        f.write(f"{file_name} {file_size}\n")
+            self.log_message(
+                "Updated files_list.txt with current files in Cloud directory."
+            )
+        except Exception as e:
+            self.log_message(f"An error occurred while updating files_list.txt: {e}")
 
     def send_file_list(self, client_socket: socket.socket):
         message = client_socket.recv(1024).decode()
@@ -28,7 +43,7 @@ class Server:
 
     def handle_file_list(self, client_socket: socket.socket):
         try:
-            with open("files_list.txt", "r") as f:
+            with open(self.files_list_path, "r") as f:
                 files_list = f.read()
             client_socket.sendall(files_list.encode())
             self.log_message("Sent file list to client.")
@@ -60,6 +75,7 @@ class Server:
             self.server_socket.bind((self.host, self.port))
             self.server_socket.listen(0)
             self.server_running = True
+            self.update_files_list()
             self.log_message("Server started. Waiting for connection...")
             while self.server_running:
                 client_socket, addr = self.server_socket.accept()
