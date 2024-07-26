@@ -1,13 +1,23 @@
 import os
 import socket
 import sys
+from time import sleep
+import threading
+
+available_files = {}
+download_queue = {}
+download_status = {}
 
 def get_file_list(client_socket: socket.socket):
-    client_socket.sendall("LIST".encode())
-    file_list = client_socket.recv(1024).decode()
-    for file in file_list.strip().split("\n"):
-        file_name, file_size = file.split(SEPARATOR)
-        print(file_name + " " + getStandardSize(int(file_size)))
+    client_socket.sendall("LIST".encode(FORMAT))
+    lst = client_socket.recv(1024).decode(FORMAT)
+    lst = lst.strip().split("\n")
+    lst = [file.split(SEPARATOR) for file in lst]
+
+    return [
+        (file_name, int(file_size))
+        for file_name, file_size in lst
+    ]
 
 def getStandardSize(size):
     itme=['B','KB','MB','GB','TB']
@@ -18,16 +28,28 @@ def getStandardSize(size):
     return size
 
 def read_input_files():
-    with open("input.txt", "r") as f:
-        input_files = f.read().split("\n")
-        input_files = [file.split(SEPARATOR) for file in input_files]
+    while True:
+        with open("input.txt", "r") as f:
+            input_files = f.read().strip().split("\n")
+            input_files = [file.split(SEPARATOR) for file in input_files]
+        
+            for file in input_files:
+                if file[0] not in available_files:
+                    continue
+                priority_size = 1024
+                if (len(file) > 1):
+                    priority_size = get_priority_size(file[1])
+                download_queue[file[0]] = priority_size
+                if file[0] not in download_status:
+                    download_status[file[0]] = [priority_size, False]
+                    with open(os.path.join("Output", file[0]), "wb") as f:
+                        pass
+        sleep(2)
+        """ print("Download Queue:", download_queue)
+        print("Download Status:", download_status) """
 
-    return [
-        (file_name, get_priority_size(file_priority))
-        for file_name, file_priority in input_files
-    ]
 
-PRIOR_MAP = {"CRITICAL": 10, "HIGH": 4, "LOW": 1}
+PRIOR_MAP = {"CRITICAL": 10, "HIGH": 4, "NORMAL": 1}
 
 def get_priority_size(file_priority):
     return 1024 * PRIOR_MAP.get(file_priority, 1)
@@ -37,13 +59,75 @@ def write_file(file_name, data):
         f.write(data)
 
 SEPARATOR = " "
+FORMAT = "utf-8"
 
 def monitor_input_file(client_socket: socket.socket):
     pass
 
 def client_request(client_socket: socket.socket):
-    get_file_list(client_socket)
-    input_files = read_input_files(input_files)
+
+    while True:
+        client_socket.sendall("get".encode(FORMAT))
+        
+        download_status_copy = download_status.copy()
+        
+        try:
+            while not all([status[1] for status in download_status_copy.values()]):
+                download_queue_copy = download_queue.copy()
+                eliminate_files = []
+                print("Download Queue:", download_queue_copy)
+                print("Download Status:", download_status_copy)
+                try:
+                    for file_name, priority_size in download_queue_copy.items():
+                        if file_name not in available_files:
+                            #print(f"File {file_name} not found.")
+                            continue
+                        elif download_status[file_name][1]:
+                            #print(f"File {file_name} already downloaded.")
+                            continue
+                        else:
+                            #print("send", file_name, priority_size)
+                            client_socket.sendall(f"GET{SEPARATOR}{file_name}{SEPARATOR}{priority_size}".encode(FORMAT))
+
+                            try:
+                                response = client_socket.recv(priority_size)
+
+                                if response == b"EOF" or len(response) == 0 or not response:
+                                    eliminate_files.append(file_name)
+                                    #download_status[file_name] = (priority_size, True)
+                                    download_status[file_name][1] = True 
+                                    print(download_status)
+                                else :
+                                    write_file(file_name, response)
+                                
+                                    current_size = os.path.getsize(os.path.join("Output", file_name))
+                                    if current_size >= available_files[file_name]:
+                                        #download_status[file_name] = (priority_size, True)
+                                        download_status[file_name][1] = True 
+                                        #print(f"File {file_name} downloaded.")
+                                        eliminate_files.append(file_name)
+                            except Exception as e:
+                                print(f"Response error: {e}")
+
+
+                    for file_name in eliminate_files:
+                        #download_queue.pop(file_name)
+                        if file_name in download_queue:
+                            del download_queue[file_name]
+                except Exception as e:
+                    print(f"Download error: {e}")
+            
+            
+            client_socket.sendall("done".encode(FORMAT))
+        except Exception as e:
+            print(f"Client request error: {e}")
+            break
+        
+
+
+        
+
+    
     
 
 def main():
@@ -51,8 +135,18 @@ def main():
     port = 65432
 
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
     client_socket.connect((host, port))
+
+    global file_list
+    file_list = get_file_list(client_socket)
+
+    for file_name, file_size in file_list:
+        available_files[file_name] = file_size
+
+    thread = threading.Thread(target=read_input_files)
+    thread.start()
+    
+    sleep(0.25)
 
     try: 
         client_request(client_socket)

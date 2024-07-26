@@ -2,17 +2,19 @@ import os
 import socket
 import threading
 
+manager = {}
+
 def gen_file_list(file_path):
     with open(file_path, "w") as f:
         for file_name in os.listdir("Cloud"):
             f.write(f'{file_name}{SEPARATOR}{str(os.path.getsize(os.path.join("Cloud", file_name)))}\n')
 
 def send_file_list(client_socket: socket.socket):
-    msg = client_socket.recv(1024).decode()
+    msg = client_socket.recv(1024).decode(FORMAT)
     if msg == "LIST":
         with open("file_list.txt", "r") as f:
             file_list = f.read()
-        client_socket.sendall(file_list.encode())
+        client_socket.sendall(file_list.encode(FORMAT))
     else:
         print("\nInvalid command.")
 
@@ -27,9 +29,42 @@ def file_chunk_generator(file_path, chunk_size):
             yield data
 
 SEPARATOR = " "
+FORMAT = "utf-8"
 
 def handle_client(client_socket: socket.socket):
     send_file_list(client_socket)
+    
+    while True:
+        cmd = client_socket.recv(1024).decode(FORMAT)
+        if cmd == "get":
+            while True:
+                request = client_socket.recv(1024).decode(FORMAT)
+
+                if request[:4] == "done":
+                    break
+
+                print(request, len(request))
+                _, file_name, priority_size = request.split(SEPARATOR)
+                print (file_name, priority_size)
+
+                download_manager(client_socket, file_name, int(priority_size))
+        elif cmd == "success":
+            pass
+
+def download_manager(client_socket: socket.socket, file_name, priority_size):
+    file_path = os.path.join("Cloud", file_name)
+    chunk_size = priority_size
+
+    if file_name not in manager:
+        manager[file_name] = file_chunk_generator(file_path, chunk_size)
+    try:
+        data = next(manager[file_name])
+        client_socket.sendall(data)
+    except StopIteration:
+        client_socket.sendall("EOF".encode(FORMAT))
+        del manager[file_name]
+
+    
 
 def main():
     host = "127.0.0.1"

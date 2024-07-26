@@ -1,1 +1,5 @@
 text1.txt NORMAL
+text2.txt HIGH
+text4.txt NORMAL
+text5.txt NORMAL
+w1.jpg NORMAL
