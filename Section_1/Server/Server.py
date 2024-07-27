@@ -34,18 +34,16 @@ class Server:
     def send_file_list(self, client_socket: socket.socket):
         message = client_socket.recv(1024).decode()
         if message == "list":
-            self.handle_file_list(client_socket)
+            try:
+                with open(self.files_list_path, "r") as f:
+                    files_list = f.read()
+                client_socket.sendall(files_list.encode())
+                self.log_message("Sent file list to client.")
+            except Exception as e:
+                self.log_message(f"Error sending file list: {e}")
         else:
             self.log_message("Invalid message from client")
-
-    def handle_file_list(self, client_socket: socket.socket):
-        try:
-            with open(self.files_list_path, "r") as f:
-                files_list = f.read()
-            client_socket.sendall(files_list.encode())
-            self.log_message("Sent file list to client.")
-        except Exception as e:
-            self.log_message(f"Error sending file list: {e}")
+    
 
     def send_file(self, client_socket: socket.socket, file_name):
         try:
