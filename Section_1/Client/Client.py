@@ -4,7 +4,6 @@ import customtkinter
 import threading
 from customtkinter import *
 import math
-import time
 
 LINEBREAK = "-" * 20
 
@@ -110,14 +109,9 @@ class Client:
                 else None
             )
 
-    def connect_to_server(self):
-        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.client_socket.connect((self.host, self.port))
-        return self.client_socket
-
     def run(self):
         try:
-            self.client_socket = self.connect_to_server()
+            self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.client_socket.connect((self.host, self.port))
             self.client_socket.settimeout(5.0)  # Set a timeout of 5 seconds
             try:
