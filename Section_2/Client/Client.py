@@ -51,8 +51,7 @@ def read_input_files():
                     download_queue[file[0]] = priority_size
                 if file[0] not in download_status:
                     download_status[file[0]] = [priority_size, False]
-                    #with open(os.path.join("Output", file[0]), "wb") as f:
-                    with open("../Output.txt", "wb") as f:
+                    with open(os.path.join("Output", file[0]), "wb") as f:
                         pass
         sleep(2)
         """ print("Download Queue:", download_queue)
@@ -64,8 +63,7 @@ def get_priority_size(file_priority):
     return 1024 * PRIOR_MAP.get(file_priority, 1)
 
 def write_file(file_name, data):
-    #with open(os.path.join("Output", file_name), "ab") as f:
-    with open("../Output.txt", "ab") as f:
+    with open(os.path.join("Output", file_name), "ab") as f:
         f.write(data)
 
 def isAllDone(status):
