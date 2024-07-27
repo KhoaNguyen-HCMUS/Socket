@@ -20,7 +20,7 @@ class Server:
             self.text_widget.see(customtkinter.END)
         print(message)
 
-    def update_files_list(self):
+    def gen_file_list(self):
         try:
             with open(self.files_list_path, "w") as f:
                 for file_name in os.listdir("Cloud"):
@@ -28,9 +28,6 @@ class Server:
                     if os.path.isfile(file_path):
                         file_size = os.path.getsize(file_path)
                         f.write(f"{file_name} {file_size}\n")
-            self.log_message(
-                "Updated files_list.txt with current files in Cloud directory."
-            )
         except Exception as e:
             self.log_message(f"An error occurred while updating files_list.txt: {e}")
 
@@ -73,18 +70,20 @@ class Server:
         try:
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server_socket.bind((self.host, self.port))
-            self.server_socket.listen(0)
+            self.server_socket.listen()
             self.server_running = True
-            self.update_files_list()
+            self.gen_file_list()
             self.log_message("Server started. Waiting for connection...")
             while self.server_running:
-                client_socket, addr = self.server_socket.accept()
-                client_socket.sendall("accepted".encode())
-                self.log_message(f"Connection from {addr}")
-                self.send_file_list(client_socket)
                 try:
+                    client_socket, addr = self.server_socket.accept()
+                    client_socket.sendall("accepted".encode())
+                    self.log_message(f"Connection from {addr}")
+                    self.send_file_list(client_socket)
                     while True:
                         file_name = client_socket.recv(1024).decode()
+                        if file_name == "close":
+                            client_socket.close()
                         if not file_name:
                             continue
                         self.send_file(client_socket, file_name)

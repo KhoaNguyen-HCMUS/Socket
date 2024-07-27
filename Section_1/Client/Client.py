@@ -4,6 +4,7 @@ import customtkinter
 import threading
 from customtkinter import *
 import math
+import time
 
 LINEBREAK = "-" * 20
 
@@ -19,6 +20,7 @@ class Client:
         self.client_running = False  # Flag to check if server is running
         self.root = customtkinter.CTk()
         self.file_list_from_server = []
+        self.is_connected = False
 
         # Create a CTkLabel to display the progress percentage
         self.progress_label = customtkinter.CTkLabel(
@@ -63,7 +65,7 @@ class Client:
 
         self.file_list_from_server = file_names
         self.log_message(
-            f"FILES AVAILABLE ON SERVER:\n{'\n'.join(processed_files)}{LINEBREAK}"
+            f"FILES AVAILABLE ON SERVER:\n{'\n'.join(processed_files)}\n{LINEBREAK}"
         )
 
     def get_new_files(self):
@@ -110,18 +112,26 @@ class Client:
 
     def connect_to_server(self):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.client_socket.connect((self.host, self.port))
+        # self.client_socket.connect((self.host, self.port))
         return self.client_socket
 
     def run(self):
         try:
             self.client_socket = self.connect_to_server()
-            # self.client_socket.connect((self.host, self.port))
-            if not self.client_socket.recv(1024).decode() == "accepted":
+            self.client_socket.connect((self.host, self.port))
+            self.client_socket.settimeout(5.0)  # Set a timeout of 5 seconds
+            try:
+                self.log_message("Waiting for server response in 5 seconds...")
+                msg = self.client_socket.recv(1024).decode()
+            except socket.timeout:
                 self.log_message(
                     "Connection refused. Server is not running. Please stop client and try again later."
                 )
-            print("Connected to server")
+                # self.client_socket.close()
+                return
+            self.client_socket.settimeout(None)  # Disable the timeout
+            self.is_connected = True
+            self.log_message("Connected to server")
             self.get_file_list()
             count_appear = {}
             file_proccessed_count = 0
@@ -152,6 +162,16 @@ class Client:
             if self.client_socket:
                 self.client_socket.close()
             self.log_message("Client closed.")
+        except ConnectionAbortedError:
+            self.log_message(
+                "Connection aborted. Server is not running. Please stop client and try again later."
+            )
+            self.client_socket.close()
+        except ConnectionRefusedError:
+            self.log_message(
+                "Connection refused. Server is not running. Please stop client and try again later."
+            )
+            self.client_socket.close()
         except Exception as e:
             self.log_message(f"Error: {e}")
             if self.client_socket:
@@ -167,7 +187,8 @@ class Client:
 
     def stop_client(self):
         self.client_running = False
-        if self.client_socket:
+        if self.is_connected:
+            self.client_socket.sendall("close".encode())
             self.client_socket.close()
         self.log_message("Client stopped.")
         self.root.quit()
