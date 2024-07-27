@@ -5,8 +5,11 @@ import threading
 from customtkinter import *
 import math
 
+LINEBREAK = "-" * 20
+
 
 class Client:
+
     def __init__(self):
         self.host = "127.0.0.1"
         self.port = 10000
@@ -17,16 +20,16 @@ class Client:
         self.root = customtkinter.CTk()
         self.file_list_from_server = []
 
-        # Tạo CTkLabel để hiển thị phần trăm hoàn thành
+        # Create a CTkLabel to display the progress percentage
         self.progress_label = customtkinter.CTkLabel(
             self.root, text="Download progress: 0%"
         )
         self.progress_label.pack(pady=10)
 
-        # Tạo CTkProgressBar để hiển thị tiến trình tải xuống
+        # Create a CTkProgressBar to display the download progress
         self.progress_bar = customtkinter.CTkProgressBar(self.root)
         self.progress_bar.pack(pady=10)
-        self.progress_bar.set(0)  # Đặt giá trị ban đầu của progress bar là 0
+        self.progress_bar.set(0)  # Set the initial value of the progress bar to 0
 
     def log_message(self, message):
         if self.text_widget:
@@ -41,6 +44,7 @@ class Client:
         file_names = []
         processed_files = []
 
+        # Function to convert file size to human-readable format
         def convert_size(size_bytes):
             if size_bytes == 0:
                 return "0B"
@@ -58,17 +62,19 @@ class Client:
             processed_files.append(f"{name} - {readable_size}")
 
         self.file_list_from_server = file_names
-        self.log_message(f"Files available on server:\n {'\n'.join(processed_files)}")
+        self.log_message(
+            f"FILES AVAILABLE ON SERVER:\n{'\n'.join(processed_files)}{LINEBREAK}"
+        )
 
     def get_new_files(self):
         with open("input.txt", "r") as f:
             current_files = f.read().splitlines()
-        return [file for file in current_files if file not in self.downloaded_files]
+        return current_files
 
     def request_file_download(self, file_name, count_appear):
         if file_name in self.downloaded_files:
             self.log_message(
-                f"File {file_name} has already been downloaded.\n-------------"
+                f"File {file_name} has already been downloaded.\n {LINEBREAK}"
             )
             return
         self.client_socket.sendall(file_name.encode())
@@ -84,39 +90,33 @@ class Client:
                     # Calculate and display progress percentage
                     progress_percentage = (downloaded_size / file_size) * 100
 
-                    # print(
-                    #     f"\rDownload {file_name} progress: {progress_percentage:.2f}%",
-                    #     end="",
-                    # )
-
-                    # Cập nhật CTkLabel để hiển thị phần trăm hoàn thành
+                    # Upadte CTkLabel to display the progress percentage
                     self.progress_label.configure(
                         text=f"Download {file_name} progress: {progress_percentage:.2f}%"
                     )
-                    self.root.update()  # Cập nhật giao diện người dùng để phản ánh sự thay đổi
+                    self.root.update()  # Update the GUI to reflect the changes
 
-                    # Cập nhật CTkProgressBar để hiển thị tiến trình tải xuống
+                    # Update the CTkProgressBar to display the download progress
                     self.progress_bar.set(downloaded_size / file_size)
                     self.root.update()
-            # print("Download complete")
-            self.log_message(f"\n Download {file_name} successful\n-------------")
+            self.log_message(f"Download {file_name} successful\n{LINEBREAK}")
 
         else:
             (
-                self.log_message(f"File {file_name} not found on server\n-------------")
+                self.log_message(f"File {file_name} not found on server\n{LINEBREAK}")
                 if (count_appear[file_name] == 0)
                 else None
             )
 
     def connect_to_server(self):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.client_socket.connect((self.host, self.port))
+        self.client_socket.connect((self.host, self.port))
         return self.client_socket
 
     def run(self):
         try:
             self.client_socket = self.connect_to_server()
-            self.client_socket.connect((self.host, self.port))
+            # self.client_socket.connect((self.host, self.port))
             if not self.client_socket.recv(1024).decode() == "accepted":
                 self.log_message(
                     "Connection refused. Server is not running. Please stop client and try again later."
@@ -124,24 +124,31 @@ class Client:
             print("Connected to server")
             self.get_file_list()
             count_appear = {}
+            file_proccessed_count = 0
             while not self.client_running:
                 new_files = self.get_new_files()
-                list_not_exist = [
-                    file for file in new_files if file not in self.file_list_from_server
-                ]
-                for file_name in new_files:
-                    if file_name in self.downloaded_files:
-                        self.log_message(f"File {file_name} already downloaded")
+                if len(new_files) > file_proccessed_count:
+                    if (
+                        new_files[file_proccessed_count]
+                        not in self.file_list_from_server
+                    ):
+                        self.log_message(
+                            f"{new_files[file_proccessed_count]} is not found on Server\n{LINEBREAK}"
+                        )
+                    elif new_files[file_proccessed_count] in self.downloaded_files:
+                        self.log_message(
+                            f"{new_files[file_proccessed_count]} is already downloaded\n{LINEBREAK}"
+                        )
                     else:
-                        if file_name not in count_appear:
-                            count_appear[file_name] = 0
-                        self.request_file_download(file_name, count_appear)
-                        if file_name not in list_not_exist:
-                            self.downloaded_files.add(file_name)
-                        count_appear[file_name] += 1
+                        self.request_file_download(
+                            new_files[file_proccessed_count], count_appear
+                        )
+                        print(new_files[file_proccessed_count])
+                        self.downloaded_files.add(new_files[file_proccessed_count])
+                    file_proccessed_count += 1
 
         except KeyboardInterrupt:
-            self.log_message("\nClient is closing...")
+            self.log_message("Client is closing...")
             if self.client_socket:
                 self.client_socket.close()
             self.log_message("Client closed.")
@@ -167,10 +174,6 @@ class Client:
 
     def input_file_name(self):
         file_name = self.file_input_entry.get()
-        if file_name not in self.file_list_from_server:
-            self.log_message(f"{file_name} is not found on Server\n-------------")
-        if file_name in self.downloaded_files:
-            self.log_message(f"{file_name} is already downloaded\n-------------")
         with open("input.txt", "a") as f:
             f.write("\n" + file_name)
 
