@@ -25,6 +25,7 @@ def file_chunk_generator(file_path, chunk_size):
         while True:
             data = f.read(chunk_size)
             if not data:
+                yield b"EOF"
                 break
             yield data
 
@@ -39,13 +40,12 @@ def handle_client(client_socket: socket.socket):
         if cmd == "get":
             while True:
                 request = client_socket.recv(1024).decode(FORMAT)
-
                 if request[:4] == "done":
                     break
+                #print(request, len(request))
 
-                print(request, len(request))
                 _, file_name, priority_size = request.split(SEPARATOR)
-                print (file_name, priority_size)
+                #print (file_name, priority_size)
 
                 download_manager(client_socket, file_name, int(priority_size))
         elif cmd == "success":
@@ -61,10 +61,7 @@ def download_manager(client_socket: socket.socket, file_name, priority_size):
         data = next(manager[file_name])
         client_socket.sendall(data)
     except StopIteration:
-        client_socket.sendall("EOF".encode(FORMAT))
         del manager[file_name]
-
-    
 
 def main():
     host = "127.0.0.1"
@@ -83,7 +80,6 @@ def main():
         client_socket, addr = server_socket.accept()
         print("Connection from", addr)
         handle_client(client_socket)
-        #handle_client(client_socket, file_list)
         #threading.Thread(target=handle_client, args=(client_socket, file_list)).start()
 
 if __name__ == "__main__":
