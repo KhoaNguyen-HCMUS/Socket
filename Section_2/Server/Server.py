@@ -1,5 +1,6 @@
 import os
 import socket
+import customtkinter
 import threading
 
 SEPARATOR = " "
@@ -7,11 +8,19 @@ FORMAT = "utf-8"
 
 
 class Server:
-    def __init__(self, host="127.0.0.1", port=65432):
-        self.host = host
-        self.port = port
+    def __init__(self):
+        self.host = "127.0.0.1"
+        self.port = 65432
         self.server_socket = None
         self.socket_list = {}
+        self.text_widget = None  # Placeholder for the text widget
+
+    def log_message(self, message):
+        if self.text_widget:
+
+            self.text_widget.insert(customtkinter.END, message + "\n")
+            self.text_widget.see(customtkinter.END)
+        print(message)
 
     def gen_file_list(self, file_path):
         with open(file_path, "w") as f:
@@ -27,7 +36,7 @@ class Server:
                 file_list = f.read()
             client_socket.sendall(file_list.encode(FORMAT))
         else:
-            print("\nInvalid command.")
+            self.log_message("\nInvalid command.")
 
     def file_chunk_generator(self, file_path, chunk_size):
         with open(file_path, "rb") as f:
@@ -51,22 +60,29 @@ class Server:
                             break
                         if request[:9] == "terminate":
                             client_socket.close()
-                            print("Client", addr, "disconnected.")
+                            self.log_message(f"Client {addr} disconnected.")
                             return
 
                         _, file_name, priority_size = request.split(SEPARATOR)
-                        self.send_data(client_socket, file_name, int(priority_size), download_manager)
+                        self.send_data(
+                            client_socket,
+                            file_name,
+                            int(priority_size),
+                            download_manager,
+                        )
                 elif cmd == "terminate":
                     client_socket.close()
-                    print("Client", addr, "disconnected.")
+                    self.log_message(f"Client {addr} disconnected.")
                     break
         except Exception as e:
-            print(
+            self.log_message(
                 f"Error: Client {self.socket_list[client_socket]} was forcibly closed by the remote host."
             )
             client_socket.close()
 
-    def send_data(self, client_socket: socket.socket, file_name, priority_size, download_manager):
+    def send_data(
+        self, client_socket: socket.socket, file_name, priority_size, download_manager
+    ):
         file_path = os.path.join("Cloud", file_name)
         chunk_size = priority_size
 
@@ -84,25 +100,73 @@ class Server:
         while True:
             client_socket, addr = self.server_socket.accept()
             self.socket_list[client_socket] = addr
-            print("Client", addr, "connected.")
+            self.log_message(f"Client {addr} connected.")
             client_thread = threading.Thread(
                 target=self.handle_client, args=(client_socket, addr)
             )
             client_thread.start()
 
-    def start(self):
+    def run(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(5)
 
-        print("Server listening on port", self.port)
+        self.log_message("Server started. Waiting for connection...")
 
         self.gen_file_list("file_list.txt")
 
         process_thread = threading.Thread(target=self.process)
         process_thread.start()
 
+    def stop_server(self):
+        self.server_socket.close()
+        self.log_message("Server stopped.")
+        self.root.quit()
+
+    def start_server(self):
+        server_thread = threading.Thread(target=self.run)
+        server_thread.daemon = True
+        server_thread.start()
+
+    def GUI(self):
+        self.root = customtkinter.CTk()
+        self.root.title("Server")
+        self.root.geometry("600x600")  # Increased window size
+        self.root.resizable(True, True)
+        self.root.configure(bg="#34568B")  # Set a background color
+
+        # Header
+        header = customtkinter.CTkLabel(
+            self.root,
+            text="Server Control Panel",
+            font=("Arial", 20),
+            fg_color="#34568B",
+            text_color="white",
+            corner_radius=10,
+        )
+        header.pack(pady=10)
+
+        self.text_widget = customtkinter.CTkTextbox(
+            self.root, fg_color="#a9d6e5", font=("Arial", 14), width=120, height=10
+        )
+        self.text_widget.pack(expand=True, fill="both", padx=10, pady=10)
+
+        stop_button = customtkinter.CTkButton(
+            self.root,
+            text="Stop Server",
+            command=self.stop_server,
+            fg_color="#FF6F61",  # Button color
+            text_color="white",  # Text color
+            font=("Arial", 16),  # Font size
+            width=120,  # Button width
+            height=50,  # Button height
+            corner_radius=10,  # Rounded corners
+        )
+        stop_button.pack(pady=20)
+
+        self.start_server()  # Start the server in a separate thread
+        self.root.mainloop()
+
 
 if __name__ == "__main__":
-    server = Server()
-    server.start()
+    Server().GUI()

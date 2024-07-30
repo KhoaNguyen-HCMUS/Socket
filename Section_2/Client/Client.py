@@ -2,6 +2,8 @@ import os
 import socket
 import threading
 from time import sleep
+import customtkinter
+from customtkinter import *
 
 SEPARATOR = " "
 FORMAT = "utf-8"
@@ -9,9 +11,9 @@ PRIOR_MAP = {"CRITICAL": 10, "HIGH": 4, "NORMAL": 1}
 
 
 class Client:
-    def __init__(self, host="127.0.0.1", port=65432):
-        self.host = host
-        self.port = port
+    def __init__(self):
+        self.host = "127.0.0.1"
+        self.port = 65432
         self.client_socket = None
         self.available_files = {}
         self.download_queue = {}
