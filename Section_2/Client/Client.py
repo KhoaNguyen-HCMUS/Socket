@@ -8,6 +8,7 @@ from customtkinter import *
 SEPARATOR = " "
 FORMAT = "utf-8"
 PRIOR_MAP = {"CRITICAL": 10, "HIGH": 4, "NORMAL": 1}
+LINEBREAK = "----------------------------------------\n"
 
 
 class Client:
@@ -27,8 +28,10 @@ class Client:
         lst = lst.strip().split("\n")
         lst = [file.split(SEPARATOR) for file in lst]
 
+        print("File list:")
         for file_name, file_size in lst:
             self.file_list[file_name] = int(file_size)
+            print(file_name, self.get_standard_size(int(file_size)))
 
     def get_standard_size(self, size):
         itme = ["B", "KB", "MB", "GB", "TB"]
@@ -48,7 +51,7 @@ class Client:
                     if file[0] not in self.file_list:
                         if file[0] in self.files_not_found:
                             continue
-                        print(f"File {file[0]} not found.")
+                        print(f"{LINEBREAK}File {file[0]} not found.")
                         self.files_not_found.append(file[0])
                         continue
 
@@ -112,7 +115,7 @@ class Client:
                             )
                             if current_size >= self.file_list[file_name]:
                                 self.download_status[file_name][1] = True
-                                print(f"Downloaded file {file_name} successfully.")
+                                print(f"{LINEBREAK}Downloaded file {file_name} successfully.")
                                 eliminate_files.append(file_name)
 
                     download_queue_copy.clear()

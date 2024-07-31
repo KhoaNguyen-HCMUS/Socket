@@ -7,7 +7,7 @@ FORMAT = "utf-8"
 SEPARATOR = " "
 SIGNAL = threading.Event()
 
-downloaded_files = []
+download_status = {}
 download_queue = {}
 file_list = {}
 
@@ -40,13 +40,15 @@ def read_input_files():
 				if file[0] not in file_list:
 					#print(f"File {file[0]} not found.")
 					continue
-				if file[0] in downloaded_files and file[0] not in download_queue:
+				if file[0] in download_status:
 					#print(f"File {file[0]} already downloaded.")
 					continue
-				if file[0] not in download_queue:
-					with open(os.path.join("Output", file[0]), "wb") as f:
-						pass
-		sleep(2)
+				
+				download_status[file[0]] = False
+				download_queue[file[0]] = file[1]
+				with open(os.path.join("Output", file[0]), "wb") as f:
+					pass
+		
 
 def write_file(file_name, data):
 	with open(os.path.join("Output", file_name), "ab") as f:

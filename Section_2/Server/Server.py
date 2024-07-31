@@ -5,6 +5,7 @@ import threading
 
 SEPARATOR = " "
 FORMAT = "utf-8"
+LINEBREAK = "----------------------------------------\n"
 
 
 class Server:
@@ -60,7 +61,7 @@ class Server:
                             break
                         if request[:9] == "terminate":
                             client_socket.close()
-                            self.log_message(f"Client {addr} disconnected.")
+                            self.log_message(f"{LINEBREAK}Client {addr} disconnected.")
                             return
 
                         _, file_name, priority_size = request.split(SEPARATOR)
@@ -72,11 +73,11 @@ class Server:
                         )
                 elif cmd == "terminate":
                     client_socket.close()
-                    self.log_message(f"Client {addr} disconnected.")
+                    self.log_message(f"{LINEBREAK}Client {addr} disconnected.")
                     break
-        except Exception as e:
+        except Exception:
             self.log_message(
-                f"Error: Client {self.socket_list[client_socket]} was forcibly closed by the remote host."
+                f"{LINEBREAK}Error: Client {self.socket_list[client_socket]} was forcibly closed by the remote host."
             )
             client_socket.close()
 
@@ -100,7 +101,7 @@ class Server:
         while True:
             client_socket, addr = self.server_socket.accept()
             self.socket_list[client_socket] = addr
-            self.log_message(f"Client {addr} connected.")
+            self.log_message(f"{LINEBREAK}Client {addr} connected.")
             client_thread = threading.Thread(
                 target=self.handle_client, args=(client_socket, addr)
             )
