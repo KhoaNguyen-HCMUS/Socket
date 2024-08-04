@@ -4,3 +4,4 @@ text4.txt NORMAL
 text5.txt NORMAL
 text3.txt CRITICAL
 file.txt HIGH
+w1.jpg

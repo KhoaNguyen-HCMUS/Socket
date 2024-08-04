@@ -22,16 +22,48 @@ class Client:
         self.files_not_found = []
         self.signal = threading.Event()
 
+        self.root = customtkinter.CTk()
+        self.progress_bars = {}
+        self.labels = {}
+        self.percent_labels = {}
+        self.next_y = 10
+        self.text_widget = None
+
+    def log_message(self, message):
+        if self.text_widget:
+            self.text_widget.insert(customtkinter.END, message + "\n")
+            self.text_widget.see(customtkinter.END)
+        print(message)
+
+    def create_progress_bar(self, name):
+        label = customtkinter.CTkLabel(self.progress_frame, text=name)
+        label.place(x=10, y=self.next_y)
+        progress_bar = customtkinter.CTkProgressBar(self.progress_frame, width=200)
+        progress_bar.place(x=10, y=self.next_y + 20)
+        percent_label = customtkinter.CTkLabel(self.progress_frame, text="0%")
+        percent_label.place(x=220, y=self.next_y + 20)
+        self.progress_bars[name] = progress_bar
+        self.labels[name] = label
+        self.percent_labels[name] = percent_label
+        self.next_y += 50
+
+    def update_progress_bar(self, name, value):
+        if name in self.progress_bars:
+            self.progress_bars[name].set(value)
+            self.percent_labels[name].configure(text=f"{int(value * 100)}%")
+        else:
+            pass
+
     def get_file_list(self):
         self.client_socket.sendall("LIST".encode(FORMAT))
         lst = self.client_socket.recv(1024).decode(FORMAT)
         lst = lst.strip().split("\n")
         lst = [file.split(SEPARATOR) for file in lst]
 
-        print("File list:")
+        self.log_message("File list:")
         for file_name, file_size in lst:
             self.file_list[file_name] = int(file_size)
-            print(file_name, self.get_standard_size(int(file_size)))
+            self.log_message(file_name + " - " + self.get_standard_size(int(file_size)))
 
     def get_standard_size(self, size):
         itme = ["B", "KB", "MB", "GB", "TB"]
@@ -51,7 +83,7 @@ class Client:
                     if file[0] not in self.file_list:
                         if file[0] in self.files_not_found:
                             continue
-                        print(f"{LINEBREAK}File {file[0]} not found.")
+                        self.log_message(f"{LINEBREAK}File {file[0]} not found.")
                         self.files_not_found.append(file[0])
                         continue
 
@@ -61,15 +93,16 @@ class Client:
                     if file[0] not in self.download_status:
                         self.download_status[file[0]] = [priority_size, False]
                         self.download_queue[file[0]] = priority_size
-                        with open (os.path.join("Output", file[0]), "wb") as f:
+                        with open(os.path.join("Output", file[0]), "wb") as f:
                             pass
+                        self.create_progress_bar(file[0])
             sleep(2)
 
     def get_priority_size(self, file_priority):
         return 1024 * PRIOR_MAP.get(file_priority, 1)
 
     def write_file(self, file_name, data):
-        with open (os.path.join("Output", file_name), "ab") as f:
+        with open(os.path.join("Output", file_name), "ab") as f:
             f.write(data)
 
     def is_all_done(self, status):
@@ -91,8 +124,9 @@ class Client:
                     for file_name, priority_size in download_queue_copy.items():
                         # if file_name in self.download_status:
                         #     if self.download_status[file_name][1]:
-                        #         print(f"File {file_name} already downloaded.")
+                        #         self.log_message(f"File {file_name} already downloaded.")
                         #         continue
+
                         self.client_socket.sendall(
                             f"GET{SEPARATOR}{file_name}{SEPARATOR}{priority_size}".encode(
                                 FORMAT
@@ -107,15 +141,21 @@ class Client:
                             if len(self.download_status[file_name]) < 3:
                                 self.download_status[file_name].append(0)
 
-                            #self.download_status[file_name][2] += len(response)
+                            # self.download_status[file_name][2] += len(response)
                             self.write_file(file_name, response)
 
                             current_size = os.path.getsize(
                                 os.path.join("Output", file_name)
                             )
+
+                            self.update_progress_bar(
+                                file_name, current_size / self.file_list[file_name]
+                            )
                             if current_size >= self.file_list[file_name]:
                                 self.download_status[file_name][1] = True
-                                print(f"{LINEBREAK}Downloaded file {file_name} successfully.")
+                                self.log_message(
+                                    f"{LINEBREAK}Downloaded file {file_name} successfully."
+                                )
                                 eliminate_files.append(file_name)
 
                     download_queue_copy.clear()
@@ -127,14 +167,34 @@ class Client:
                 self.client_socket.sendall("done".encode(FORMAT))
             except Exception:
                 self.signal.set()
-                print(
+                self.log_message(
                     "Error: Server interrupted, connection was forcibly closed by the remote host."
                 )
                 self.client_socket.close()
-                print("Client closed.")
+                self.log_message("Client closed.")
                 break
 
-    def start(self):
+    def input_file_name(self):
+        file_name = self.file_input_entry.get()
+        with open("input.txt", "a") as f:
+            f.write("\n" + file_name)
+
+    def stop_client(self):
+        try:
+            self.log_message("Stopping client...")
+            self.signal.set()
+            if self.client_socket:
+                self.client_socket.sendall("terminate".encode(FORMAT))
+                self.client_socket.close()
+                self.root.quit()
+                sys.exit()
+        except Exception as e:
+            self.log_message(f"An error occurred while stopping the client: {e}")
+        finally:
+            self.root.quit()  # Ensure the GUI window is closed
+            sys.exit()  # Exit the program
+
+    def start_client(self):
         try:
             self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.client_socket.connect((self.host, self.port))
@@ -149,21 +209,118 @@ class Client:
         except KeyboardInterrupt:
             self.signal.set()
             self.client_socket.sendall("terminate".encode(FORMAT))
-            print("\nClient is closing...")
-            print("Client closed.")
+            self.log_message("\nClient is closing...")
+            self.log_message("Client closed.")
         except ConnectionRefusedError:
-            print("Connection refused. Server not responding.")
-            print("Client closed.")
+            self.log_message("Connection refused. Server not responding.")
+            self.log_message("Client closed.")
         except Exception as e:
-            print(
+            self.log_message(
                 "Error: Server interrupted, connection was forcibly closed by the remote host."
             )
-            print("Client closed.")
+            self.log_message("Client closed.")
         finally:
             self.signal.set()
             self.client_socket.close()
 
+    def start(self):
+        self.GUI()
+
+    def stop_client(self):
+        self.signal.set()
+        self.client_socket.sendall("terminate".encode(FORMAT))
+        self.log_message("Client is closing...")
+        self.log_message("Client closed.")
+        if self.client_socket:
+            self.client_socket.close()
+        self.root.quit()
+
+    def GUI(self):
+        self.root.title("Client")
+        self.root.geometry("600x600")
+        self.root.resizable(True, True)
+        self.root.configure(bg="#34568B")
+
+        header = customtkinter.CTkLabel(
+            self.root,
+            text="Client Control Panel",
+            font=("Arial", 20),
+            fg_color="#34568B",
+            text_color="white",
+            corner_radius=10,
+        )
+        header.grid(row=0, column=0, columnspan=2, pady=10)
+
+        # Create frames
+        self.text_frame = customtkinter.CTkFrame(self.root, width=400, height=400)
+        self.text_frame.grid(row=1, column=0, sticky="nsew")
+
+        self.progress_frame = customtkinter.CTkFrame(self.root, width=300, height=400)
+        self.progress_frame.grid(row=1, column=1, sticky="nsew")
+
+        # Add text box to text_frame
+        self.text_box = customtkinter.CTkTextbox(
+            self.text_frame, width=280, height=400, fg_color="white", text_color="black"
+        )
+        self.text_box.grid(padx=10, pady=10)
+        self.text_widget = self.text_box
+
+        # Create a new frame for the exit button
+        self.exit_frame = customtkinter.CTkFrame(
+            self.root, width=600, height=100, fg_color="lightgray"
+        )
+        self.exit_frame.grid(row=2, column=0, columnspan=2, sticky="nsew")
+
+        # Add file input entry
+        self.file_input_entry = customtkinter.CTkEntry(
+            self.exit_frame,
+            placeholder_text="Enter file name, e.g., input.txt",
+            width=200,
+            fg_color="white",
+            text_color="black",
+        )
+        self.file_input_entry.grid(row=0, column=1, pady=10, padx=10, sticky="ew")
+
+        # Add enter button
+        self.enter_button = customtkinter.CTkButton(
+            self.exit_frame,
+            text="Enter",
+            command=self.input_file_name,
+            fg_color="#007BFF",  # Button color
+            text_color="white",  # Text color
+            font=("Arial", 16),
+        )
+        self.enter_button.grid(row=0, column=2, pady=10, padx=10, sticky="ew")
+
+        # Add stop client button
+        self.stop_button = customtkinter.CTkButton(
+            self.exit_frame,
+            text="Stop Client",
+            command=self.stop_client,
+            fg_color="#FF6F61",
+            text_color="white",
+            width=120,  # Button width
+            height=50,  # Button height
+            corner_radius=10,
+        )
+        self.stop_button.grid(
+            row=1, column=1, pady=20, padx=10, sticky="ew", columnspan=2
+        )
+
+        # Configure grid weights to ensure proper resizing
+        self.exit_frame.grid_columnconfigure(0, weight=1)
+        self.exit_frame.grid_columnconfigure(1, weight=1)
+        self.exit_frame.grid_columnconfigure(2, weight=1)
+        self.exit_frame.grid_columnconfigure(3, weight=1)
+
+        self.root.grid_rowconfigure(1, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_columnconfigure(1, weight=1)
+
+        threading.Thread(target=self.start_client).start()
+        self.root.mainloop()
+
 
 if __name__ == "__main__":
     client = Client()
-    client.start()
+    client.GUI()
