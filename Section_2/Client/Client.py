@@ -235,14 +235,14 @@ class Client:
             self.client_socket.close()
         self.root.quit()
 
-    def clear_placeholder(self):
+    def clear_placeholder(self, event):
         if (
             self.file_input_textbox.get("1.0", "end-1c")
             == "Enter file name and priority, e.g., input.txt NORMAL"
         ):
             self.file_input_textbox.delete("1.0", "end")
 
-    def add_placeholder(self):
+    def add_placeholder(self, event):
         if not self.file_input_textbox.get("1.0", "end-1c"):
             self.file_input_textbox.insert(
                 "1.0", "Enter file name and priority, e.g., input.txt NORMAL"

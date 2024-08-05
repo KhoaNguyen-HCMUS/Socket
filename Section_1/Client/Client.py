@@ -192,6 +192,17 @@ class Client:
         with open("input.txt", "a") as f:
             f.write("\n" + file_name)
 
+    def clear_placeholder(self, event):
+        if (
+            self.file_input_textbox.get("1.0", "end-1c")
+            == "Enter file name, e.g., input.txt"
+        ):
+            self.file_input_textbox.delete("1.0", "end")
+
+    def add_placeholder(self, event):
+        if not self.file_input_textbox.get("1.0", "end-1c"):
+            self.file_input_textbox.insert("1.0", "Enter file name, e.g., input.txt")
+
     def GUI(self):
         self.root = customtkinter.CTk()
         self.root.title("Client")
@@ -221,10 +232,18 @@ class Client:
         self.progress_bar.pack(pady=10)
         self.progress_bar.set(0)
 
-        self.file_input_entry = customtkinter.CTkEntry(
-            self.root, placeholder_text="Enter file name, e.g., input.txt"
+        # Add file input entry
+        self.file_input_textbox = customtkinter.CTkTextbox(
+            self.root,
+            width=200,
+            height=100,
+            fg_color="white",
+            text_color="black",
         )
-        self.file_input_entry.pack(pady=10)
+        self.file_input_textbox.insert("1.0", "Enter file name, e.g., input.txt")
+        self.file_input_textbox.bind("<FocusIn>", self.clear_placeholder)
+        self.file_input_textbox.bind("<FocusOut>", self.add_placeholder)
+        self.file_input_textbox.pack(pady=10)
 
         # Step 3: Add a Submit Button for the file input
         submit_button = customtkinter.CTkButton(
