@@ -175,7 +175,7 @@ class Client:
                 break
 
     def input_file_name(self):
-        file_name = self.file_input_entry.get()
+        file_name = self.file_input_textbox.get("1.0", "end-1c").strip()
         with open("input.txt", "a") as f:
             f.write("\n" + file_name)
 
@@ -235,6 +235,19 @@ class Client:
             self.client_socket.close()
         self.root.quit()
 
+    def clear_placeholder(self):
+        if (
+            self.file_input_textbox.get("1.0", "end-1c")
+            == "Enter file name and priority, e.g., input.txt NORMAL"
+        ):
+            self.file_input_textbox.delete("1.0", "end")
+
+    def add_placeholder(self):
+        if not self.file_input_textbox.get("1.0", "end-1c"):
+            self.file_input_textbox.insert(
+                "1.0", "Enter file name and priority, e.g., input.txt NORMAL"
+            )
+
     def GUI(self):
         self.root.title("Client")
         self.root.geometry("600x600")
@@ -272,14 +285,19 @@ class Client:
         self.exit_frame.grid(row=2, column=0, columnspan=2, sticky="nsew")
 
         # Add file input entry
-        self.file_input_entry = customtkinter.CTkEntry(
+        self.file_input_textbox = customtkinter.CTkTextbox(
             self.exit_frame,
-            placeholder_text="Enter file name, e.g., input.txt",
             width=200,
+            height=100,
             fg_color="white",
             text_color="black",
         )
-        self.file_input_entry.grid(row=0, column=1, pady=10, padx=10, sticky="ew")
+        self.file_input_textbox.insert(
+            "1.0", "Enter file name and priority, e.g., input.txt NORMAL"
+        )
+        self.file_input_textbox.bind("<FocusIn>", self.clear_placeholder)
+        self.file_input_textbox.bind("<FocusOut>", self.add_placeholder)
+        self.file_input_textbox.grid(row=0, column=1, pady=10, padx=10, sticky="ew")
 
         # Add enter button
         self.enter_button = customtkinter.CTkButton(
@@ -318,6 +336,7 @@ class Client:
         self.root.grid_columnconfigure(1, weight=1)
 
         threading.Thread(target=self.start_client).start()
+        # self.start_client()
         self.root.mainloop()
 
 
