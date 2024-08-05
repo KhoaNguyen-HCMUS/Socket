@@ -187,12 +187,10 @@ class Client:
                 self.client_socket.sendall("terminate".encode(FORMAT))
                 self.client_socket.close()
                 self.root.quit()
-                sys.exit()
         except Exception as e:
             self.log_message(f"An error occurred while stopping the client: {e}")
         finally:
             self.root.quit()  # Ensure the GUI window is closed
-            sys.exit()  # Exit the program
 
     def start_client(self):
         try:
@@ -222,18 +220,6 @@ class Client:
         finally:
             self.signal.set()
             self.client_socket.close()
-
-    def start(self):
-        self.GUI()
-
-    def stop_client(self):
-        self.signal.set()
-        self.client_socket.sendall("terminate".encode(FORMAT))
-        self.log_message("Client is closing...")
-        self.log_message("Client closed.")
-        if self.client_socket:
-            self.client_socket.close()
-        self.root.quit()
 
     def clear_placeholder(self, event):
         if (
@@ -265,7 +251,9 @@ class Client:
         header.grid(row=0, column=0, columnspan=2, pady=10)
 
         # Create frames
-        self.text_frame = customtkinter.CTkFrame(self.root, width=400, height=400)
+        self.text_frame = customtkinter.CTkScrollableFrame(
+            self.root, width=300, height=300
+        )
         self.text_frame.grid(row=1, column=0, sticky="nsew")
 
         self.progress_frame = customtkinter.CTkFrame(self.root, width=300, height=400)
@@ -335,7 +323,7 @@ class Client:
         self.root.grid_columnconfigure(0, weight=1)
         self.root.grid_columnconfigure(1, weight=1)
 
-        threading.Thread(target=self.start_client).start()
+        threading.Thread(target=self.start_client, daemon=True).start()
         # self.start_client()
         self.root.mainloop()
 
