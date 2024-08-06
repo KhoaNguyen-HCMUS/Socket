@@ -188,7 +188,7 @@ class Client:
         self.root.quit()
 
     def input_file_name(self):
-        file_name = self.file_input_entry.get()
+        file_name = self.file_input_textbox.get()
         with open("input.txt", "a") as f:
             f.write("\n" + file_name)
 
