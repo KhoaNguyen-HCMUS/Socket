@@ -1,5 +1,0 @@
-text1.txt
-text2.txt
-text7.txt
-text1.txt
-text7.txt
