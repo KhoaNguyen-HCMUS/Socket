@@ -2,6 +2,7 @@ import socket
 import os
 import customtkinter
 import threading
+import time
 from customtkinter import *
 import math
 
@@ -150,6 +151,12 @@ class Client:
                         print(new_files[file_proccessed_count])
                         self.downloaded_files.add(new_files[file_proccessed_count])
                     file_proccessed_count += 1
+                else:
+                    self.log_message("No new files to download\n")
+                    self.log_message("Stop Client in 5 seconds...\n")
+                    time.sleep(5)
+                    self.stop_client()
+                    break
 
         except KeyboardInterrupt:
             self.log_message("Client is closing...")
@@ -188,7 +195,7 @@ class Client:
         self.root.quit()
 
     def input_file_name(self):
-        file_name = self.file_input_textbox.get()
+        file_name = self.file_input_textbox.get("1.0", "end-1c").strip()
         with open("input.txt", "a") as f:
             f.write("\n" + file_name)
 
