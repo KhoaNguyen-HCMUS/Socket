@@ -29,31 +29,6 @@ class Client:
         self.next_y = 10
         self.text_widget = None
 
-    def log_message(self, message):
-        if self.text_widget:
-            self.text_widget.insert(customtkinter.END, message + "\n")
-            self.text_widget.see(customtkinter.END)
-        print(message)
-
-    def create_progress_bar(self, name):
-        label = customtkinter.CTkLabel(self.progress_frame, text=name)
-        label.place(x=10, y=self.next_y)
-        progress_bar = customtkinter.CTkProgressBar(self.progress_frame, width=200)
-        progress_bar.place(x=10, y=self.next_y + 20)
-        percent_label = customtkinter.CTkLabel(self.progress_frame, text="0%")
-        percent_label.place(x=220, y=self.next_y + 20)
-        self.progress_bars[name] = progress_bar
-        self.labels[name] = label
-        self.percent_labels[name] = percent_label
-        self.next_y += 50
-
-    def update_progress_bar(self, name, value):
-        if name in self.progress_bars:
-            self.progress_bars[name].set(value)
-            self.percent_labels[name].configure(text=f"{int(value * 100)}%")
-        else:
-            pass
-
     def get_file_list(self):
         self.client_socket.sendall("LIST".encode(FORMAT))
         lst = self.client_socket.recv(1024).decode(FORMAT)
@@ -64,14 +39,6 @@ class Client:
         for file_name, file_size in lst:
             self.file_list[file_name] = int(file_size)
             self.log_message(file_name + " - " + self.get_standard_size(int(file_size)))
-
-    def get_standard_size(self, size):
-        itme = ["B", "KB", "MB", "GB", "TB"]
-        for x in itme:
-            if size < 1024.0:
-                return "%3.1f%s" % (size, x)
-            size /= 1024.0
-        return size
 
     def read_input_files(self):
         while not self.signal.is_set():
@@ -97,6 +64,14 @@ class Client:
                             pass
                         self.create_progress_bar(file[0])
             sleep(2)
+
+    def get_standard_size(self, size):
+        itme = ["B", "KB", "MB", "GB", "TB"]
+        for x in itme:
+            if size < 1024.0:
+                return "%3.1f%s" % (size, x)
+            size /= 1024.0
+        return size
 
     def get_priority_size(self, file_priority):
         return 1024 * PRIOR_MAP.get(file_priority, 1)
@@ -171,26 +146,7 @@ class Client:
                     "Error: Server interrupted, connection was forcibly closed by the remote host."
                 )
                 self.client_socket.close()
-                self.log_message("Client closed.")
                 break
-
-    def input_file_name(self):
-        file_name = self.file_input_textbox.get("1.0", "end-1c").strip()
-        with open("input.txt", "a") as f:
-            f.write("\n" + file_name)
-
-    def stop_client(self):
-        try:
-            self.log_message("Stopping client...")
-            self.signal.set()
-            if self.client_socket:
-                self.client_socket.sendall("terminate".encode(FORMAT))
-                self.client_socket.close()
-                self.root.quit()
-        except Exception as e:
-            self.log_message(f"An error occurred while stopping the client: {e}")
-        finally:
-            self.root.quit()  # Ensure the GUI window is closed
 
     def start_client(self):
         try:
@@ -216,10 +172,53 @@ class Client:
             self.log_message(
                 "Error: Server interrupted, connection was forcibly closed by the remote host."
             )
-            self.log_message("Client closed.")
         finally:
             self.signal.set()
             self.client_socket.close()
+
+    def stop_client(self):
+        try:
+            self.log_message("Stopping client...")
+            self.signal.set()
+            if self.client_socket:
+                self.client_socket.sendall("terminate".encode(FORMAT))
+                self.client_socket.close()
+                self.root.quit()
+        except Exception as e:
+            self.log_message(f"An error occurred while stopping the client: {e}")
+        finally:
+            self.root.quit()  # Ensure the GUI window is closed
+
+    def log_message(self, message):
+        if self.text_widget:
+            self.text_widget.insert(customtkinter.END, message + "\n")
+            self.text_widget.see(customtkinter.END)
+        print(message)
+
+    def create_progress_bar(self, name):
+        label = customtkinter.CTkLabel(self.progress_frame, text=name)
+        label.place(x=10, y=self.next_y)
+        progress_bar = customtkinter.CTkProgressBar(self.progress_frame, width=200)
+        progress_bar.place(x=10, y=self.next_y + 20)
+        percent_label = customtkinter.CTkLabel(self.progress_frame, text="0%")
+        percent_label.place(x=220, y=self.next_y + 20)
+        self.progress_bars[name] = progress_bar
+        self.labels[name] = label
+        self.percent_labels[name] = percent_label
+        self.next_y += 50
+
+    def update_progress_bar(self, name, value):
+        if name in self.progress_bars:
+            self.progress_bars[name].set(value)
+            self.percent_labels[name].configure(text=f"{int(value * 100)}%")
+        else:
+            pass
+
+    def add_placeholder(self, event):
+        if not self.file_input_textbox.get("1.0", "end-1c"):
+            self.file_input_textbox.insert(
+                "1.0", "Enter file name and priority, e.g., input.txt NORMAL"
+            )
 
     def clear_placeholder(self, event):
         if (
@@ -228,11 +227,10 @@ class Client:
         ):
             self.file_input_textbox.delete("1.0", "end")
 
-    def add_placeholder(self, event):
-        if not self.file_input_textbox.get("1.0", "end-1c"):
-            self.file_input_textbox.insert(
-                "1.0", "Enter file name and priority, e.g., input.txt NORMAL"
-            )
+    def input_file_name(self):
+        file_name = self.file_input_textbox.get("1.0", "end-1c").strip()
+        with open("input.txt", "a") as f:
+            f.write("\n" + file_name)
 
     def GUI(self):
         self.root.title("Client")
